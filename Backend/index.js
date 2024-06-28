@@ -1,85 +1,34 @@
-const axios = require('axios');
-const axiosDigestAuth = require('@mhoc/axios-digest-auth').default;
+const express = require('express');
+const { createProjectAndCluster, createDatabaseUser, getConnectionUri } = require('./atlasConfig');
 const dotenv = require('dotenv');
+const cors = require('cors');
 dotenv.config();
 
-const publicKey = process.env.ATLAS_PUBLIC_KEY;  // Organization Public Key
-const privateKey = process.env.ATLAS_PRIVATE_KEY; // Organization Private Key
-const organizationId = process.env.ATLAS_ORG_ID; // Replace with your organization ID
+const app = express();
+const port = process.env.PORT || 3000;
+app.use(cors());
+// Middleware to parse JSON bodies
+app.use(express.json());
 
-const client = new axiosDigestAuth({
-    username: publicKey,
-    password: privateKey,
+// POST endpoint to create project and initiate cluster creation
+app.post('/create-project', async (req, res) => {
+    const { projectName, username, password } = req.body;
+
+    try {
+        console.log(req.body);
+        const { projectId, clusterName } = await createProjectAndCluster(projectName);
+        await createDatabaseUser(projectId, clusterName, username, password);
+        const connectionUri = await getConnectionUri(projectId, clusterName,username,password);
+        console.log(connectionUri);
+       
+        res.status(201).json({ projectId, clusterName, connectionString: connectionUri });
+    } catch (error) {
+        console.error('Error creating project and cluster:', error.message);
+        res.status(500).json({ error: 'Failed to create project and cluster' });
+    }
 });
-console.log(organizationId)
-const createProject = async (projectName) => {
-    const url = 'https://cloud.mongodb.com/api/atlas/v1.0/groups';
 
-    try {
-        const response = await client.request({
-            method: 'POST',
-            url,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            data: {
-                name: projectName,
-                orgId: organizationId, // Include organization ID in the request body
-            },
-        });
-        console.log('Project created successfully:', JSON.stringify(response.data, null, 2));
-        return response.data.id; // Return the project ID
-    } catch (error) {
-        console.error('Error creating project:', error.response ? error.response.data : error.message);
-        throw error;
-    }
-};
-
-const initiateClusterCreation = async (projectId, clusterName) => {
-    const url = `https://cloud.mongodb.com/api/atlas/v1.0/groups/${projectId}/clusters`;
-
-    const clusterConfig = {
-        name: clusterName,
-        providerSettings: {
-            providerName: 'TENANT',
-            backingProviderName: 'AWS',
-            instanceSizeName: 'M0',  // M0 for free tier
-            regionName: 'US_EAST_1',
-        },
-        clusterType: 'REPLICASET',
-        backupEnabled: false,
-    };
-
-    try {
-        const response = await client.request({
-            method: 'POST',
-            url,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            data: clusterConfig,
-        });
-        console.log('Cluster creation initiated:', JSON.stringify(response.data, null, 2));
-    } catch (error) {
-        console.error('Error creating cluster:', error.response ? error.response.data : error.message);
-        throw error;
-    }
-};
-
-// Main function to orchestrate project and cluster creation
-const main = async () => {
-    const projectName = 'myNe';
-    const clusterName = 'myNe';
-
-    try {
-        // Create a new project within the organization
-        const projectId = await createProject(projectName);
-
-        // Initiate cluster creation within the created project
-        await initiateClusterCreation(projectId, clusterName);
-    } catch (error) {
-        console.error('Error in main function:', error.message);
-    }
-};
-
-main();
+// Start server
+app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
+});
