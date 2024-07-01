@@ -1,6 +1,12 @@
 const axios = require('axios');
 const axiosDigestAuth = require('@mhoc/axios-digest-auth').default;
 const dotenv = require('dotenv');
+const { getUserIP, addIpToOrgAccessList, addIpToProjectAccessList } = require('./ip_address');
+
+dotenv.config();
+
+// Now you can use axios, axiosDigestAuth, dotenv, and the imported functions as needed
+
 dotenv.config();
 
 const publicKey = process.env.ATLAS_PUBLIC_KEY;
@@ -11,7 +17,6 @@ const client = new axiosDigestAuth({
     username: publicKey,
     password: privateKey,
 });
-
 const createProject = async (projectName) => {
     const url = 'https://cloud.mongodb.com/api/atlas/v1.0/groups';
 
@@ -34,6 +39,7 @@ const createProject = async (projectName) => {
         throw error;
     }
 };
+
 
 const initiateClusterCreation = async (projectId, clusterName) => {
     const url = `https://cloud.mongodb.com/api/atlas/v1.0/groups/${projectId}/clusters`;
@@ -105,7 +111,8 @@ const sleep = (ms) => {
 
 const getConnectionUri = async (projectId, clusterName, username, password) => {
     const url = `https://cloud.mongodb.com/api/atlas/v1.0/groups/${projectId}/clusters/${clusterName}`;
-console.log(username,password)
+    console.log(username, password);
+
     for (let i = 0; i < 10; i++) { // Retry up to 10 times
         try {
             const response = await client.request({
@@ -119,7 +126,7 @@ console.log(username,password)
             const { connectionStrings } = response.data;
 
             if (connectionStrings && connectionStrings.standardSrv) {
-                const connectionString = `mongodb+srv://${username}:${password}@${connectionStrings.standardSrv.split('//')[1]}/?retryWrites = true & w= majority & appName=${clusterName}/`;
+                const connectionString = `mongodb+srv://${username}:${password}@${connectionStrings.standardSrv.split('//')[1]}/?retryWrites=true&w=majority&appName=${clusterName}`;
                 console.log('Connection string fetched successfully:', connectionString);
                 return connectionString;
             } else {
@@ -136,17 +143,50 @@ console.log(username,password)
 
 const createProjectAndCluster = async (projectName) => {
     try {
+        // const userIP = await getUserIP();
+        // console.log(userIP)
+
+        // Add user's IP to organization's access list
+        // await addIpToOrgAccessList(organizationId, userIP);
         const projectId = await createProject(projectName);
-        const clusterName = await initiateClusterCreation(projectId, projectName); // Use projectName as clusterName
+        // await addIpToProjectAccessList(projectId, userIP);
+        // Create the project
+      
+
+        // Initiate cluster creation
+        const clusterName = await initiateClusterCreation(projectId, projectName);
+
+        // Add user's IP to the project's access list (if necessary)
+        // await addIpToProjectAccessList(projectId, userIP);
+
         return { projectId, clusterName };
     } catch (error) {
         console.error('Error creating project and cluster:', error.message);
         throw error;
     }
 };
+const deleteCluster = async (projectId, clusterName) => {
+    const url = `https://cloud.mongodb.com/api/atlas/v1.0/groups/${projectId}/clusters/${clusterName}`;
 
-module.exports = {
+    try {
+        const response = await client.request({
+            method: 'DELETE',
+            url,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        console.log(`Cluster ${clusterName} deleted successfully`);
+        return response.data; // If you need to return anything from the response
+    } catch (error) {
+        console.error(`Error deleting cluster ${clusterName}:`, error.response ? error.response.data : error.message);
+        throw error;
+    }
+};
+module.exports={
     createProjectAndCluster,
     createDatabaseUser,
     getConnectionUri,
+    deleteCluster
 };

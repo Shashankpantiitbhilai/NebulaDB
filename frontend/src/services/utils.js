@@ -21,3 +21,14 @@ export const createProject = async (projectName,username,password) => {
         throw error;
     }
 };
+export const deleteProject = async (projectId,projectName) => {
+    try {
+        console.log(projectId,projectName)
+        const response = await axiosInstance.delete(`/delete-project/${projectId}/${projectName}`);
+        console.log(response.data)
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting project:', error);
+        throw error;
+    }
+};
