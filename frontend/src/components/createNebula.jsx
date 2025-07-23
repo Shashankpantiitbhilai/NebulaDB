@@ -24,6 +24,7 @@ const CreateNebulaDialog = ({ open, onClose }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [connectionString, setConnectionString] = useState("");
+  const [databaseUsername, setDatabaseUsername] = useState("");
   const [creationSuccess, setCreationSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
@@ -38,18 +39,31 @@ const CreateNebulaDialog = ({ open, onClose }) => {
     try {
       await delay(2000); // Simulate setting up project
       setLoadingMessage("Creating Nebula...");
-      await delay(3000); // Simulate creating cluster
+      await delay(2000); // Simulate creating cluster
       setLoadingMessage("Deploying to cloud...");
-      await delay(3000);
-      setLoadingMessage("Getting Connection UID...");
-      const add = await addUserToOrg(username);
-      // const response = await createProject(projectName, username, password);
-      console.log(add);
-      // setProjectId(response.projectId);
-      // setProjectName(response.projectName);
-      // console.log(response);
-      // setProgress(100)
-      // setConnectionString(response.connectionString);
+      
+      // Create the actual project
+      const response = await createProject(projectName, username, password);
+      console.log('Project created:', response);
+      setProjectId(response.projectId);
+      setProjectName(response.projectName || projectName);
+      setConnectionString(response.connectionString);
+      setDatabaseUsername(response.databaseUsername);
+      setProgress(90);
+      
+      setLoadingMessage("Setting up user access...");
+      await delay(1000);
+      
+      // Try to add user to organization (optional)
+      try {
+        const add = await addUserToOrg(username);
+        console.log('User org result:', add);
+      } catch (orgError) {
+        console.log('User organization setup failed (not critical):', orgError);
+        // Don't fail the entire process if user org fails
+      }
+      
+      setProgress(100);
       setCreationSuccess(true);
       toast.success("Database created successfully!");
       setInfoMessage("");
@@ -91,6 +105,7 @@ const CreateNebulaDialog = ({ open, onClose }) => {
     setUsername("");
     setPassword("");
     setConnectionString("");
+    setDatabaseUsername("");
     setCreationSuccess(false);
     setProgress(0);
 
@@ -128,6 +143,15 @@ const CreateNebulaDialog = ({ open, onClose }) => {
             <Box
               sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}
             >
+              <Typography variant="h6">Database Created Successfully! 🎉</Typography>
+              
+              {databaseUsername && databaseUsername !== username && (
+                <Typography variant="body2" color="info.main">
+                  📝 Note: Your database username was converted from "{username}" to "{databaseUsername}" 
+                  (MongoDB Atlas database usernames cannot contain @ symbols)
+                </Typography>
+              )}
+              
               <Typography variant="h6">Connection String:</Typography>
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <Typography
@@ -150,6 +174,12 @@ const CreateNebulaDialog = ({ open, onClose }) => {
                   </IconButton>
                 </Tooltip>
               </Box>
+              
+              {databaseUsername && (
+                <Typography variant="body2" color="text.secondary">
+                  💡 Use username: <strong>{databaseUsername}</strong> and your password to connect
+                </Typography>
+              )}
             </Box>
           ) : (
             <Box
@@ -168,10 +198,11 @@ const CreateNebulaDialog = ({ open, onClose }) => {
                 }}
               />
               <TextField
-                label="Username"
+                label="Username/Email"
                 fullWidth
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                helperText="You can enter an email address - it will be converted to a valid database username"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">👤</InputAdornment>

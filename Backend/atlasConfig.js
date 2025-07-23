@@ -76,6 +76,14 @@ const initiateClusterCreation = async (projectId, clusterName) => {
 const createDatabaseUser = async (projectId, clusterName, username, password) => {
     const url = `https://cloud.mongodb.com/api/atlas/v1.0/groups/${projectId}/databaseUsers`;
 
+    // MongoDB Atlas database usernames cannot contain @ symbol or be email addresses
+    // Convert email to valid username by removing @ and domain parts
+    let validUsername = username;
+    if (username.includes('@')) {
+        validUsername = username.split('@')[0].replace(/[^a-zA-Z0-9]/g, ''); // Remove special chars except alphanumeric
+        console.log(`📝 Converting email ${username} to valid database username: ${validUsername}`);
+    }
+
     const userConfig = {
         databaseName: 'admin',
         roles: [
@@ -84,9 +92,9 @@ const createDatabaseUser = async (projectId, clusterName, username, password) =>
                 databaseName: 'admin'
             }
         ],
-        username: username,
+        username: validUsername,
         password: password,
-        x509Type: 'NONE', // Ensure x509Type is set to NONE
+        x509Type: 'NONE',
     };
 
     try {
@@ -99,6 +107,7 @@ const createDatabaseUser = async (projectId, clusterName, username, password) =>
             data: userConfig,
         });
         console.log('Database user created successfully:', JSON.stringify(response.data, null, 2));
+        return { username: validUsername, originalInput: username };
     } catch (error) {
         console.error('Error creating database user:', error.response ? error.response.data : error.message);
         throw error;
@@ -109,9 +118,9 @@ const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-const getConnectionUri = async (projectId, clusterName, username, password) => {
+const getConnectionUri = async (projectId, clusterName, actualUsername, password) => {
     const url = `https://cloud.mongodb.com/api/atlas/v1.0/groups/${projectId}/clusters/${clusterName}`;
-    console.log(username, password);
+    console.log('Using database username:', actualUsername);
 
     for (let i = 0; i < 10; i++) { // Retry up to 10 times
         try {
@@ -126,7 +135,7 @@ const getConnectionUri = async (projectId, clusterName, username, password) => {
             const { connectionStrings } = response.data;
 
             if (connectionStrings && connectionStrings.standardSrv) {
-                const connectionString = `mongodb+srv://${username}:${password}@${connectionStrings.standardSrv.split('//')[1]}/?retryWrites=true&w=majority&appName=${clusterName}`;
+                const connectionString = `mongodb+srv://${actualUsername}:${password}@${connectionStrings.standardSrv.split('//')[1]}/?retryWrites=true&w=majority&appName=${clusterName}`;
                 console.log('Connection string fetched successfully:', connectionString);
                 return connectionString;
             } else {
@@ -143,25 +152,18 @@ const getConnectionUri = async (projectId, clusterName, username, password) => {
 
 const createProjectAndCluster = async (projectName) => {
     try {
-        // const userIP = await getUserIP();
-        // console.log(userIP)
-
-        // Add user's IP to organization's access list
-        // await addIpToOrgAccessList(organizationId, userIP);
-        const projectId = await createProject(projectName);
-        // await addIpToProjectAccessList(projectId, userIP);
         // Create the project
-      
+        console.log('🏗️ Creating new MongoDB Atlas project...');
+        const projectId = await createProject(projectName);
+        console.log('✅ New project created successfully with ID:', projectId);
 
         // Initiate cluster creation
+        console.log('🚀 Creating MongoDB cluster...');
         const clusterName = await initiateClusterCreation(projectId, projectName);
-
-        // Add user's IP to the project's access list (if necessary)
-        // await addIpToProjectAccessList(projectId, userIP);
 
         return { projectId, clusterName };
     } catch (error) {
-        console.error('Error creating project and cluster:', error.message);
+        console.error('❌ Error creating project and cluster:', error.response ? error.response.data : error.message);
         throw error;
     }
 };
@@ -184,9 +186,48 @@ const deleteCluster = async (projectId, clusterName) => {
         throw error;
     }
 };
+
+const addUserToOrganization = async (email) => {
+    // Validate email format first
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        console.log(`⚠️ Invalid email format: ${email}. Skipping user invitation.`);
+        return { message: 'Invalid email format provided, skipping user invitation', warning: true };
+    }
+
+    const url = `https://cloud.mongodb.com/api/atlas/v1.0/orgs/${organizationId}/invites`;
+
+    try {
+        const response = await client.request({
+            method: 'POST',
+            url,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            data: {
+                username: email, // For invites, username should be the email
+                roles: ['ORG_MEMBER'],
+            },
+        });
+
+        console.log('✅ User invitation sent successfully to:', email);
+        return response.data;
+    } catch (error) {
+        console.error('Error inviting user to organization:', error.response ? error.response.data : error.message);
+        
+        // Return success message since this is not critical for database creation
+        console.log('ℹ️ User invitation feature not available or failed, but database creation will continue');
+        return { 
+            message: 'User invitation feature not available, but database creation completed successfully',
+            warning: 'Could not invite user - this may require higher API permissions or the user may already exist'
+        };
+    }
+};
+
 module.exports={
     createProjectAndCluster,
     createDatabaseUser,
     getConnectionUri,
-    deleteCluster
+    deleteCluster,
+    addUserToOrganization
 };
