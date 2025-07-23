@@ -71,7 +71,28 @@ const CreateNebulaDialog = ({ open, onClose }) => {
       
     } catch (error) {
       console.error("Error creating project:", error);
-      toast.error("Error creating project. Please try again.");
+      
+      // Extract the detailed error message from the backend
+      let errorMessage = "Error creating project. Please try again.";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Show detailed error to user
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 8000, // Show for 8 seconds for longer error messages
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      
+      // Clear loading states
+      setProgress(0);
+      setInfoMessage("");
+      setLoadingMessage("");
     } finally {
       setLoading(false);
       setLoadingMessage("");
@@ -90,7 +111,23 @@ const CreateNebulaDialog = ({ open, onClose }) => {
       handleClose();
     } catch (error) {
       console.error(`Error deleting project '${projectName}':`, error);
-      toast.error(`Error deleting project '${projectName}'. Please try again.`);
+      
+      // Extract the detailed error message from the backend
+      let errorMessage = `Error deleting project '${projectName}'. Please try again.`;
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Show detailed error to user
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 6000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -128,7 +165,19 @@ const CreateNebulaDialog = ({ open, onClose }) => {
 
   return (
     <>
-      <ToastContainer />
+      <ToastContainer 
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        style={{ whiteSpace: 'pre-line' }} // Allow line breaks in error messages
+      />
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle>Create New Nebula</DialogTitle>
         <DialogContent>

@@ -4,6 +4,7 @@ import Sidebar from "./sidebar";
 import HomePage from "./Home";
 import FormsPage from "./formspage";
 import DeploymentCard from "./deploy";
+import DatabaseDashboard from "./DatabaseDashboard";
 import theme from "./theme";
 
 const NebulaDBUI = () => {
@@ -17,6 +18,7 @@ const NebulaDBUI = () => {
         <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
           <Toolbar />
           {activePage === "Home" && <HomePage />}
+          {activePage === "Clusters" && <DatabaseDashboard />}
           {activePage === "Forms" && <FormsPage />}
           <DeploymentCard />
         </Box>

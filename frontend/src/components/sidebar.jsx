@@ -8,13 +8,19 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Divider,
+  Link,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import {
   Home as HomeIcon,
   Star as StarIcon,
   FlashOn as ZapIcon,
-  Settings as SettingsIcon,
+  Storage as StorageIcon,
+  GitHub as GitHubIcon,
+  Archive as NpmIcon,
 } from "@mui/icons-material";
 
 const drawerWidth = 240;
@@ -46,9 +52,9 @@ const Sidebar = ({ activePage, setActivePage }) => (
       <List>
         {[
           { name: "Home", icon: <HomeIcon /> },
+          { name: "Clusters", icon: <StorageIcon /> },
           { name: "Nebulas", icon: <StarIcon /> },
           { name: "Connect", icon: <ZapIcon /> },
-          { name: "Settings", icon: <SettingsIcon /> },
         ].map((item) => (
           <ListItem
             button
@@ -71,6 +77,66 @@ const Sidebar = ({ activePage, setActivePage }) => (
           </ListItem>
         ))}
       </List>
+
+      {/* Links Section */}
+      <Divider sx={{ my: 3, backgroundColor: "rgba(255,255,255,0.2)" }} />
+      
+      <Typography variant="body2" sx={{ mb: 2, color: "rgba(255,255,255,0.7)" }}>
+        Quick Links
+      </Typography>
+
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <Tooltip title="View on NPM Package" arrow>
+          <Link
+            href="https://www.npmjs.com/package/nebula-db1"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              color: "white",
+              textDecoration: "none",
+              p: 1,
+              borderRadius: 1,
+              "&:hover": {
+                backgroundColor: "rgba(255,255,255,0.1)",
+              },
+            }}
+          >
+            <NpmIcon sx={{ mr: 1, fontSize: "1.2rem" }} />
+            <Typography variant="body2">NPM Package</Typography>
+          </Link>
+        </Tooltip>
+
+        <Tooltip title="View GitHub Repository" arrow>
+          <Link
+            href="https://github.com/Shashankpantiitbhilai/NebulaDB"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              color: "white",
+              textDecoration: "none",
+              p: 1,
+              borderRadius: 1,
+              "&:hover": {
+                backgroundColor: "rgba(255,255,255,0.1)",
+              },
+            }}
+          >
+            <GitHubIcon sx={{ mr: 1, fontSize: "1.2rem" }} />
+            <Typography variant="body2">GitHub Repo</Typography>
+          </Link>
+        </Tooltip>
+      </Box>
+
+      {/* Footer */}
+      <Box sx={{ mt: 4, textAlign: "center" }}>
+        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)" }}>
+          Made with ❤️ by Shashank
+        </Typography>
+      </Box>
     </Box>
   </Drawer>
 );
