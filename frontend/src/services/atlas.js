@@ -3,13 +3,13 @@ import config from '../config/config.js';
 
 // Point to your backend instead of Atlas directly
 const axiosInstance = axios.create({
-    baseURL: config.backendUrl,
+    baseURL: config.backend.current,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-console.log('🔗 Atlas service connecting to backend:', config.backendUrl);
+console.log('🔗 Atlas service connecting to backend:', config.backend.current);
 
 export const addUserToOrg = async (email) => {
     try {
