@@ -12,7 +12,7 @@
 
 *Simplifying database connections with automated query optimization and developer-friendly interfaces*
 
-[📦 NPM Package](https://www.npmjs.com/package/nebula-db1) • [📊 Statistics](https://npm-stat.com/charts.html?package=nebula-db1) • [🌐 Live Demo](https://nebula-db.vercel.app) • [📚 Documentation](#documentation)
+[📦 NPM Package](https://www.npmjs.com/package/nebula-db1) • [📊 Statistics](https://npm-stat.com/charts.html?package=nebula-db1) • [🌐 Live Demo](https://nebuladb.onrender.com/) • [📚 Documentation](#documentation)
 
 </div>
 
